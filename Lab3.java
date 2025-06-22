@@ -158,12 +158,12 @@ class Ambulance extends Thread { // the Class for the Ambulance thread
         break;
       }
 
-      // Disembarkment
-      System.out.println("Ambulance disembarks the ferry at port " + port);
-      fry.reduceLoad(); // Reduce load
-
       // Arrive at the next port
       port = 1 - port;
+
+      // Disembarkment
+      System.out.println("Ambulance disembarks the ferry at port " + port);
+      fry.reduceLoad(); // Reduce loads
 
       // Terminate
       if (isInterrupted()) {
