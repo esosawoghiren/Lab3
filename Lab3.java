@@ -171,7 +171,7 @@ class Ferry extends Thread { // The ferry Class
     }
   }
 
-  // methodes to manipulate the load of the ferry
+  // methods to manipulate the load of the ferry
   public int getLoad() {
     return (load);
   }
