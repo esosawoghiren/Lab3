@@ -21,15 +21,17 @@ public class Lab3 {
 
     Ambulance ambulance = new Ambulance(PORT0, fer);
 
-    fer.start();
+    /* Start the threads */
+
+    fer.start();   //Start the ferry thread 
     for (i = 0; i < NUM_CARS; i++) {
-      automobile[i].start();
+      automobile[i].start();   //start the automobile thread
     }
-    ambulance.start();
+    ambulance.start();  //start the ambulance thread
 
     try {
       fer.join();
-    } catch (InterruptedException e) {}
+    } catch (InterruptedException e) {}  // Wait until ferry terminates.
 
     System.out.println("Ferry stopped.");
     for (i = 0; i < NUM_CARS; i++) {
@@ -62,27 +64,36 @@ class Auto extends Thread {
 
             while (true) {
                 try {
-                    fry.mutex.acquire();
+                    fry.mutex.acquire();   // Lock access to shared ferry state
+
+                     // Check if ferry is at the same port, not full, and not disembarking
                     boolean samePort = fry.getPort() == port;
                     boolean notFull = fry.getLoad() < Lab3.MAXLOAD;
                     boolean notDisembarking = !fry.isDisembarking;
 
                     if (samePort && notFull && notDisembarking) {
+                        // Safe to board: increment load and unlock access
                         fry.addLoad();
                         fry.mutex.release();
 
+                         // Wait for boarding permission from the ferry (ensures order)
                         Semaphore semBoard = (port == 0) ? fry.semBoardPort0 : fry.semBoardPort1;
                         semBoard.acquire();
 
                         System.out.println("Auto " + id_auto + " boards on the ferry at port " + port);
 
                         fry.mutex.acquire();
+
+                         // If this is the last vehicle needed to fill the ferry, release departure signal
                         if (fry.getLoad() == Lab3.MAXLOAD) {
                             fry.semDepart.release();
                         }
                         fry.mutex.release();
-
+                        
+                         // Wait to be told it's time to disembark
                         fry.semDisembark.acquire();
+
+                        // Update to new port after crossing
                         port = 1 - port;
 
                         System.out.println("Auto " + id_auto + " disembarks from ferry at port " + port);
@@ -138,7 +149,7 @@ class Ambulance extends Thread {
             semBoard.acquireUninterruptibly();
 
             System.out.println("Ambulance boards the ferry at port " + port);
-            fry.semDepart.release();
+            fry.semDepart.release(); // Priority: Depart immediately
 
             fry.semDisembark.acquireUninterruptibly();
             port = 1 - port;
@@ -172,8 +183,8 @@ class Ferry extends Thread {
     public Semaphore semDisembark;
     public Semaphore semDepart;
 
-    public Semaphore mutex = new Semaphore(1, true);
-    public Semaphore disembarkingDone = new Semaphore(0, true);
+    public Semaphore mutex = new Semaphore(1, true);      // Mutual exclusion for accessing shared state
+    public Semaphore disembarkingDone = new Semaphore(0, true);   // Tracks number of disembarked vehicles
     public boolean isDisembarking = false;
     private int disembarkCount = 0;
 
@@ -186,17 +197,20 @@ class Ferry extends Thread {
         numCrossings = nbtours;
     }
 
+    // Tracks number of disembarked vehicles
+    
     public void run() {
         System.out.println("Start at port " + port + " with a load of " + load + " vehicles");
 
         if (port == 0) {
-            semBoardPort0.release(Lab3.MAXLOAD);
+        // Release permits for up to 5 vehicles at port 0
+            semBoardPort0.release(Lab3.MAXLOAD); 
         } else {
             semBoardPort1.release(Lab3.MAXLOAD);
         }
 
         for (int i = 0; i < numCrossings; i++) {
-            semDepart.acquireUninterruptibly();
+            semDepart.acquireUninterruptibly();  // Release permits for up to 5 vehicles at port 0
 
             System.out.println("Departure from port " + port + " with a load of " + load + " vehicles");
             System.out.println("Crossing " + i + " with a load of " + load + " vehicles");
@@ -225,8 +239,9 @@ class Ferry extends Thread {
     public void addLoad() { load++; }
     public void reduceLoad() { load--; }
 
+    // Called by a vehicle after disembarking to notify the ferry
     public void vehicleDisembarked() {
         disembarkCount--;
-        disembarkingDone.release();
+        disembarkingDone.release();   // Signal ferry that one vehicle has exited
     }
 }
