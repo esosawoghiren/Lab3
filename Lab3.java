@@ -76,12 +76,11 @@ class Auto extends Thread { // Class for the auto threads.
         break;
       }
 
-
       System.out.println("Auto " + id_auto + " boards on the ferry at port " + port);
       fry.addLoad(); // increment the ferry load
 
       //the vehicles have to depart if they are at the max capacity
-      if(fry.getLoad() == Lab3.MAXLOAD){
+      if(fry.getLoad() == 5){
         fry.semDepart.release();
       }else{
         semBoard.release();
@@ -92,6 +91,7 @@ class Auto extends Thread { // Class for the auto threads.
       } catch (InterruptedException e) {
         break;
       }
+
       // Arrive at the next port
       port = 1 - port;
 
@@ -99,12 +99,12 @@ class Auto extends Thread { // Class for the auto threads.
       System.out.println("Auto " + id_auto + " disembarks from ferry at port " + port);
       fry.reduceLoad(); // Reduce load
 
-      if(fry.getLoad() == 0){
-        fry.semBoardPort0.release();
+      if(port == 0){
+        fry.semBoardPort0.release(fry.getLoad());
       }else{
-        fry.semBoardPort1.release();
+        fry.semBoardPort1.release(fry.getLoad());
       }
-
+        
       // Terminate
       if (isInterrupted()) {
         break;
@@ -158,12 +158,12 @@ class Ambulance extends Thread { // the Class for the Ambulance thread
         break;
       }
 
-      // Arrive at the next port
-      port = 1 - port;
-
       // Disembarkment
       System.out.println("Ambulance disembarks the ferry at port " + port);
       fry.reduceLoad(); // Reduce load
+
+      // Arrive at the next port
+      port = 1 - port;
 
       // Terminate
       if (isInterrupted()) {
@@ -198,7 +198,12 @@ class Ferry extends Thread { // The ferry Class
   public void run() {
     int i;
     System.out.println("Start at port " + port + " with a load of " + load + " vehicles");
-    semBoardPort0.release();
+
+    if(port == 0){
+      semBoardPort0.release();
+    }else{
+      semBoardPort1.release();
+    }
 
     // numCrossings crossings in our day
     for (i = 0; i < numCrossings; i++) {
@@ -206,15 +211,20 @@ class Ferry extends Thread { // The ferry Class
       // The crossing
       System.out.println("Departure from port " + port + " with a load of " + load + " vehicles");
       System.out.println("Crossing " + i + " with a load of " + load + " vehicles");
-      port = 1 - port;
+      
       try {
         sleep((int) (100 * Math.random()));
       } catch (Exception e) {
       }
+      //change port
+      port = 1 - port;
+
       // Arrive at port
       System.out.println("Arrive at port " + port + " with a load of " + load + " vehicles");
       // Disembarkment and loading
-      semDisembark.release();
+      semDisembark.release(load);
+
+      
     }
   }
 
