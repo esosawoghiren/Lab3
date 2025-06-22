@@ -223,8 +223,6 @@ class Ferry extends Thread { // The ferry Class
       System.out.println("Arrive at port " + port + " with a load of " + load + " vehicles");
       // Disembarkment and loading
       semDisembark.release(load);
-
-      
     }
   }
 
