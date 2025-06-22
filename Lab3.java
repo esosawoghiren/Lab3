@@ -66,15 +66,44 @@ class Auto extends Thread { // Class for the auto threads.
       System.out.println("Auto " + id_auto + " arrives at port " + port);
 
       // Board
+
+      Semaphore semBoard = (port == 0) ? fry.semBoardPort0 : fry.semBoardPort1;
+
+      //check to see if the vehicle can board
+      try {
+        semBoard.acquire();
+      } catch (InterruptedException e) {
+        break;
+      }
+
+
       System.out.println("Auto " + id_auto + " boards on the ferry at port " + port);
       fry.addLoad(); // increment the ferry load
 
+      //the vehicles have to depart if they are at the max capacity
+      if(fry.getLoad() == Lab3.MAXLOAD){
+        fry.semDepart.release();
+      }else{
+        semBoard.release();
+      }
+
+      try {
+        fry.semDisembark.acquire();
+      } catch (InterruptedException e) {
+        break;
+      }
       // Arrive at the next port
       port = 1 - port;
 
       // disembark
       System.out.println("Auto " + id_auto + " disembarks from ferry at port " + port);
       fry.reduceLoad(); // Reduce load
+
+      if(fry.getLoad() == 0){
+        fry.semBoardPort0.release();
+      }else{
+        fry.semBoardPort1.release();
+      }
 
       // Terminate
       if (isInterrupted()) {
@@ -184,7 +213,7 @@ class Ferry extends Thread { // The ferry Class
       }
       // Arrive at port
       System.out.println("Arrive at port " + port + " with a load of " + load + " vehicles");
-      // Disembarkment et loading
+      // Disembarkment and loading
       semDisembark.release();
     }
   }
