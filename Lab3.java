@@ -1,4 +1,3 @@
-import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 public class Lab3 {
@@ -97,6 +96,9 @@ class Ambulance extends Thread { // the Class for the Ambulance thread
   }
 
   public void run() {
+
+    Semaphore semBoard;
+
     while (true) {
       // Attente
       try {
@@ -106,9 +108,26 @@ class Ambulance extends Thread { // the Class for the Ambulance thread
       }
       System.out.println("Ambulance arrives at port " + port);
 
+       semBoard = (port == 0) ? fry.semBoardPort0 : fry.semBoardPort1;
+
+       try {
+        semBoard.acquire(); // Wait until boarding is allowed
+      } catch (InterruptedException e) {
+        break;
+      }
+
       // Board
       System.out.println("Ambulance boards the ferry at port " + port);
       fry.addLoad(); // increment the load
+      
+      fry.semDepart.release(); // ferry should leave immediately
+
+      // Wait for disembark signal
+      try {
+        fry.semDisembark.acquire();
+      } catch (InterruptedException e) {
+        break;
+      }
 
       // Arrive at the next port
       port = 1 - port;
@@ -132,7 +151,6 @@ class Ferry extends Thread { // The ferry Class
   private int load = 0; // Load is zero
   private int numCrossings; // number of crossings to execute
   // Semaphores
-
 
   public Semaphore semBoardPort0;  // Semaphore for loading at port 0
   public Semaphore semBoardPort1;  // Semaphore loading at port 1
